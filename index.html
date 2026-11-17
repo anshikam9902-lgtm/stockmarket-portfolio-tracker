@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYNAPSE // QUANT - Stock Market Portfolio Terminal</title>
+  
+  <!-- Fonts: Space Grotesk (Headers) & Space Mono (Telemetry & Data) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- =========================================================================
+       APPLICATION HEADER & TOP TELEMETRY BAR
+       ========================================================================= -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand-section">
+        <div class="brand-logo-badge">SYNAPSE // 4.8</div>
+        <div>
+          <h1 class="brand-title">QUANT TERMINAL</h1>
+          <div class="brand-sub">HIGH-FREQUENCY PORTFOLIO TELEMETRY & NEURAL INTELLIGENCE</div>
+        </div>
+      </div>
+
+      <div class="telemetry-cluster">
+        <div class="telemetry-item">
+          <span class="live-pulse"></span>
+          <span>MARKET: <strong class="val-up">OPEN (NYSE/NASDAQ)</strong></span>
+        </div>
+        <div class="telemetry-item">
+          <span>TIME: <strong id="liveMarketClock" class="mono-num">2026-11-17 16:30:00 UTC</strong></span>
+        </div>
+        <div class="telemetry-item">
+          <span>LATENCY: <strong class="val-neutral">4ms</strong></span>
+        </div>
+        <div class="telemetry-item">
+          <span>ENGINE: <strong class="val-violet">NEURAL-V4</strong></span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Currency Selector -->
+        <select id="currencySelector" class="currency-selector-badge">
+          <option value="USD">USD ($)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="GBP">GBP (£)</option>
+          <option value="JPY">JPY (¥)</option>
+          <option value="BTC">BTC (₿)</option>
+        </select>
+
+        <!-- Simulation Speed Controls -->
+        <div style="display:flex; border:1px solid var(--border-medium); margin-right:4px;">
+          <button class="btn btn-ghost btn-sm sim-speed-btn" data-speed="0" title="Shortcut: Space">PAUSE</button>
+          <button class="btn btn-ghost btn-sm sim-speed-btn active" data-speed="1">1X</button>
+          <button class="btn btn-ghost btn-sm sim-speed-btn" data-speed="5">5X</button>
+          <button class="btn btn-ghost btn-sm sim-speed-btn" data-speed="10">10X</button>
+        </div>
+
+        <button class="btn btn-ghost btn-sm" id="btnToggleSFX">SFX: ON</button>
+        <button class="btn btn-ghost btn-sm" id="btnOpenHotkeysModal" title="Shortcut: ?">HOTKEYS</button>
+        <button class="btn btn-ghost btn-sm" id="btnOpenPresetsModal">PRESETS</button>
+        <button class="btn btn-ghost btn-sm" id="btnOpenExportModal">EXPORT/IMPORT</button>
+        <button class="btn btn-ghost btn-sm" id="btnOpenAuditModal">AUDIT LEDGER</button>
+        <button class="btn btn-ghost btn-sm" id="btnOpenCashModal">CASH OPS</button>
+        <button class="btn btn-primary btn-sm" id="btnOpenNewOrderModal" title="Shortcut: B">+ NEW ORDER</button>
+      </div>
+    </div>
+
+    <!-- Scrolling Real-Time Marquee Ticker Tape -->
+    <div class="ticker-tape">
+      <div class="ticker-label">LIVE FEED // 100Hz</div>
+      <div class="ticker-track" id="tickerMarqueeTrack">
+        <!-- Populated dynamically via JS -->
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       MAIN WORKSPACE CONTAINER
+       ========================================================================= -->
+  <main class="terminal-workspace">
+
+    <!-- TOP COCKPIT METRICS CARDS (4-Column Key Telemetry) -->
+    <section class="cockpit-grid">
+      <!-- Card 1: Net Portfolio Value -->
+      <div class="cockpit-card primary-metric">
+        <div class="cockpit-header">
+          <span class="cockpit-label">NET PORTFOLIO VALUE</span>
+          <span class="tag-badge tag-violet">LIVE EQUITY</span>
+        </div>
+        <div class="cockpit-value mono-num" id="metricNetWorth">$0.00</div>
+        <div class="cockpit-sub" id="metricDayGain">
+          <span>DAY DELTA:</span>
+          <strong>+$0.00 (+0.00%)</strong>
+        </div>
+        <div class="cockpit-sub" style="margin-top:4px; font-size:10px; color:var(--text-dim);">
+          <span>AVAILABLE CASH:</span>
+          <strong id="metricBuyingPower" class="mono-num">$0.00 (0%)</strong>
+        </div>
+      </div>
+
+      <!-- Card 2: Unrealized & Realized Return -->
+      <div class="cockpit-card alpha-metric">
+        <div class="cockpit-header">
+          <span class="cockpit-label">UNREALIZED ALPHA</span>
+          <span class="tag-badge tag-emerald">YTD RETURN</span>
+        </div>
+        <div class="cockpit-value mono-num val-up" id="metricTotalGain">+$0.00</div>
+        <div class="cockpit-sub">
+          <span>RETURN ON COST:</span>
+          <strong id="metricTotalGainPct" class="mono-num val-up">+0.00%</strong>
+        </div>
+        <div class="cockpit-sub" style="margin-top:4px; font-size:10px; color:var(--text-dim);">
+          <span>REALIZED GAINS:</span>
+          <strong id="metricRealizedPL" class="mono-num val-up">+$0.00</strong>
+        </div>
+      </div>
+
+      <!-- Card 3: Quant Risk Dashboard -->
+      <div class="cockpit-card risk-metric">
+        <div class="cockpit-header">
+          <span class="cockpit-label">QUANT RISK TELEMETRY</span>
+          <span class="tag-badge tag-crimson">VAR & BETA</span>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin: 4px 0;">
+          <div>
+            <span style="font-size:9px; color:var(--text-dim);">BETA (SPY):</span>
+            <div class="mono-num" style="font-size:16px; font-weight:700;" id="metricBeta">1.18</div>
+          </div>
+          <div>
+            <span style="font-size:9px; color:var(--text-dim);">SHARPE:</span>
+            <div class="mono-num val-up" style="font-size:16px; font-weight:700;" id="metricSharpe">2.45</div>
+          </div>
+        </div>
+        <div class="cockpit-sub" style="font-size:10px;">
+          <span>SORTINO: <strong id="metricSortino" class="mono-num">3.12</strong></span>
+          <span>VaR 95%: <strong id="metricVaR" class="mono-num val-down">-$0.00</strong></span>
+        </div>
+      </div>
+
+      <!-- Card 4: Neural AI Forecast Regime -->
+      <div class="cockpit-card neural-metric">
+        <div class="cockpit-header">
+          <span class="cockpit-label">NEURAL MODEL REGIME</span>
+          <span class="tag-badge tag-cyan">AI INFERENCE</span>
+        </div>
+        <div class="cockpit-value" style="font-size:18px; color:var(--secondary-cyan);" id="metricNeuralRegime">
+          BULLISH EXPANSION
+        </div>
+        <div class="cockpit-sub">
+          <span>CONFIDENCE INDEX:</span>
+          <strong class="mono-num val-neutral">97.4%</strong>
+        </div>
+        <div class="cockpit-sub" style="margin-top:4px; font-size:10px; color:var(--text-dim);">
+          <span>30D PROJECTED ALPHA:</span>
+          <strong class="mono-num val-up">+7.8% ± 3.1%</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN 3-COLUMN WORKSTATION GRID (5 : 12 : 7 Columns) -->
+    <div class="main-grid">
+
+      <!-- =====================================================================
+           LEFT COLUMN: WATCHLIST & SENTINEL ALERTS & AI NEWS WIRE
+           ===================================================================== -->
+      <aside class="left-col">
+        <!-- Watchlist Panel -->
+        <div class="terminal-panel" style="flex: 1;">
+          <div class="panel-header">
+            <span class="panel-title">MARKET WATCHLIST</span>
+            <span class="panel-telemetry">LIVE STREAM</span>
+          </div>
+
+          <div class="watchlist-search-box">
+            <input type="text" id="watchlistSearchInput" class="terminal-input" placeholder="SEARCH TICKER [HOTKEY: /]...">
+          </div>
+
+          <div class="watchlist-filters">
+            <button class="watchlist-tab active" data-cat="ALL">ALL</button>
+            <button class="watchlist-tab" data-cat="TECH">TECH</button>
+            <button class="watchlist-tab" data-cat="CRYPTO">CRYPTO</button>
+            <button class="watchlist-tab" data-cat="ETF">ETF</button>
+            <button class="watchlist-tab" data-cat="HELD">HELD</button>
+          </div>
+
+          <div class="watchlist-list" id="watchlistContainer">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Sentinel Price Alerts Panel -->
+        <div class="terminal-panel">
+          <div class="panel-header">
+            <span class="panel-title">SENTINEL ALERTS</span>
+            <span class="tag-badge tag-magenta">ACTIVE</span>
+          </div>
+
+          <div style="padding: 8px 10px; border-bottom: 1px solid var(--border-subtle); display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; gap:6px;">
+              <select id="alertSymbolSelect" class="terminal-select" style="flex:1;">
+                <option value="NVDA">NVDA</option>
+                <option value="AAPL">AAPL</option>
+                <option value="MSFT">MSFT</option>
+                <option value="TSLA">TSLA</option>
+                <option value="AMZN">AMZN</option>
+                <option value="GOOGL">GOOGL</option>
+                <option value="META">META</option>
+                <option value="AMD">AMD</option>
+                <option value="PLTR">PLTR</option>
+                <option value="COIN">COIN</option>
+                <option value="SPY">SPY</option>
+                <option value="QQQ">QQQ</option>
+                <option value="BTC/USD">BTC/USD</option>
+                <option value="ETH/USD">ETH/USD</option>
+              </select>
+              <select id="alertConditionSelect" class="terminal-select" style="width:75px;">
+                <option value=">=">&gt;=</option>
+                <option value="<=">&lt;=</option>
+              </select>
+              <input type="number" id="alertTargetPriceInput" class="terminal-input" placeholder="TARGET $" style="flex:1.2;">
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btnAddAlert" style="width:100%; border-color:var(--volatility-magenta); color:var(--volatility-magenta);">+ ARM SENTINEL ALERT</button>
+          </div>
+
+          <div class="alerts-list" id="alertsListContainer">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Real-Time Financial News & AI Sentiment Wire -->
+        <div class="terminal-panel">
+          <div class="panel-header">
+            <span class="panel-title">AI NEWS WIRE & SENTIMENT</span>
+            <span class="tag-badge tag-cyan">NLP TELEMETRY</span>
+          </div>
+          <div class="news-wire-list" id="newsWireList">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </aside>
+
+      <!-- =====================================================================
+           CENTER COLUMN: CHART & ADVANCED QUANT STUDIO DECK
+           ===================================================================== -->
+      <div class="center-col">
+        <!-- Interactive Chart Panel -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-instrument-info">
+              <span class="chart-symbol" id="chartActiveSymbol">NVDA // NVIDIA CORP.</span>
+              <span class="chart-price mono-num" id="chartActivePrice">$142.85</span>
+              <span class="chart-chg mono-num val-up" id="chartActiveChg">+$5.65 (+4.12%)</span>
+            </div>
+
+            <div class="chart-controls">
+              <!-- Timeframe selector -->
+              <div class="timeframe-group">
+                <button class="tf-btn" data-tf="1D">1D</button>
+                <button class="tf-btn" data-tf="1W">1W</button>
+                <button class="tf-btn active" data-tf="1M">1M</button>
+                <button class="tf-btn" data-tf="3M">3M</button>
+                <button class="tf-btn" data-tf="1Y">1Y</button>
+                <button class="tf-btn" data-tf="ALL">ALL</button>
+              </div>
+
+              <!-- Chart Style -->
+              <div class="timeframe-group">
+                <button class="tf-btn chart-style-btn active" data-style="candlestick">CANDLE</button>
+                <button class="tf-btn chart-style-btn" data-style="neon-area">NEON</button>
+              </div>
+
+              <!-- Overlays -->
+              <div class="chart-overlay-toggles">
+                <span class="toggle-chip active" id="toggleNeuralCone">NEURAL CONE</span>
+                <span class="toggle-chip active" id="toggleTargets">TARGETS</span>
+                <span class="toggle-chip active" id="toggleEMA">EMA 20/50</span>
+                <span class="toggle-chip" id="toggleBollinger">BOLLINGER</span>
+                <span class="toggle-chip" id="toggleRSI">RSI (14)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Canvas Visualizer -->
+          <div class="chart-canvas-wrapper">
+            <div class="chart-hud-box" id="chartHudBox">
+              <!-- Dynamically populated with crosshair stats -->
+            </div>
+
+            <canvas id="mainChartCanvas"></canvas>
+
+            <div class="chart-legend-row">
+              <div class="legend-item"><span class="legend-dot" style="background:#00F5A0;"></span> BULLISH</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#FF3366;"></span> BEARISH</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#00D2FF;"></span> SMA 20 / AI FAN</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#A855F7;"></span> EMA 50</div>
+              <div class="legend-item" id="legendBollinger" style="display:none;"><span class="legend-dot" style="background:#EC4899;"></span> BOLL (20,2)</div>
+              <div class="legend-item" id="legendRSI" style="display:none;"><span class="legend-dot" style="background:#EAB308;"></span> RSI (14)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CENTER DECK: TABBED ADVANCED QUANT STUDIO -->
+        <div class="terminal-panel" style="flex:1;">
+          <div class="center-deck-tabs">
+            <button class="deck-tab-btn active" data-pane="paneHoldings">📊 POSITIONS LEDGER</button>
+            <button class="deck-tab-btn" data-pane="paneStress">⚡ STRESS LAB (BLACK SWAN)</button>
+            <button class="deck-tab-btn" data-pane="paneRebalance">⚖️ REBALANCE MATRIX</button>
+            <button class="deck-tab-btn" data-pane="paneDividend">💰 DIVIDEND RADAR</button>
+            <button class="deck-tab-btn" data-pane="paneBacktest">🧪 ALPHA BACKTESTER</button>
+          </div>
+
+          <!-- PANE 1: POSITIONS LEDGER -->
+          <div class="deck-content-pane active" id="paneHoldings">
+            <div class="table-toolbar">
+              <div class="table-filter-tabs">
+                <button class="table-tab-btn active" onclick="window.sortHoldings('value')">SORT VALUE</button>
+                <button class="table-tab-btn" onclick="window.sortHoldings('pnl')">SORT P&L</button>
+                <button class="table-tab-btn" onclick="window.sortHoldings('day')">SORT DAY</button>
+              </div>
+              <div style="font-size:10px; color:var(--text-dim);">
+                CLICK ROW TO INSPECT // DOUBLE-CLICK TO ROUTE ORDER
+              </div>
+            </div>
+
+            <div class="holdings-table-container">
+              <table class="terminal-table">
+                <thead>
+                  <tr>
+                    <th>ASSET / NAME</th>
+                    <th>CLASS</th>
+                    <th>QTY</th>
+                    <th>AVG COST</th>
+                    <th>LIVE PRICE</th>
+                    <th>MARKET VALUE</th>
+                    <th>WEIGHT</th>
+                    <th>DAY P&L</th>
+                    <th>TOTAL P&L</th>
+                    <th>NEURAL RATING</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody id="holdingsTableBody">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- PANE 2: STRESS LAB (BLACK SWAN SCENARIO SIMULATOR) -->
+          <div class="deck-content-pane" id="paneStress">
+            <div style="padding:10px 14px; background:#0B1019; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="color:var(--volatility-magenta);">BLACK SWAN STRESS TESTING KERNEL</strong>
+                <div style="font-size:10px; color:var(--text-muted);">Simulate macro shocks to measure portfolio resilience, drawdown boundaries, and tail-risk VaR.</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="window.resetStressScenario()">RESET BASELINE</button>
+            </div>
+
+            <div class="scenario-grid">
+              <div class="scenario-card" onclick="window.applyStressScenario('tech_crash')">
+                <div>
+                  <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <strong style="color:var(--bearish-crimson);">1. TECH CRASH (-15%)</strong>
+                    <span class="tag-badge tag-crimson">HIGH RISK</span>
+                  </div>
+                  <p style="font-size:10px; color:var(--text-muted);">Semiconductors & Software dump 15-20%. Treasury yield spikes +25bps.</p>
+                </div>
+                <div style="margin-top:8px; font-size:10px; color:var(--bearish-crimson);">IMPACT: HIGH DRAWDOWN</div>
+              </div>
+
+              <div class="scenario-card" onclick="window.applyStressScenario('crypto_dump')">
+                <div>
+                  <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <strong style="color:var(--volatility-magenta);">2. CRYPTO LIQUIDATION (-25%)</strong>
+                    <span class="tag-badge tag-magenta">LIQUIDITY RUN</span>
+                  </div>
+                  <p style="font-size:10px; color:var(--text-muted);">Digital assets face massive cascading long liquidation cascade.</p>
+                </div>
+                <div style="margin-top:8px; font-size:10px; color:var(--volatility-magenta);">IMPACT: BTC & ETH DRAWDOWN</div>
+              </div>
+
+              <div class="scenario-card" onclick="window.applyStressScenario('fed_pivot')">
+                <div>
+                  <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <strong style="color:var(--bullish-emerald);">3. FED 50BPS RATE CUT (+8%)</strong>
+                    <span class="tag-badge tag-emerald">DOVISH SURPRISE</span>
+                  </div>
+                  <p style="font-size:10px; color:var(--text-muted);">Emergency monetary easing sparks aggressive risk-on expansion rally.</p>
+                </div>
+                <div style="margin-top:8px; font-size:10px; color:var(--bullish-emerald);">IMPACT: CAPITAL EXPANSION</div>
+              </div>
+            </div>
+
+            <!-- Custom Shock Slider -->
+            <div style="padding: 0 12px 10px 12px; display:flex; align-items:center; gap:12px;">
+              <span class="label-telemetry" style="min-width:140px;">CUSTOM SHOCK (-40% to +40%):</span>
+              <input type="range" id="customStressSlider" min="-40" max="40" value="0" step="1" style="flex:1;" oninput="window.applyCustomStress(this.value)">
+              <span id="customStressVal" class="mono-num" style="min-width:60px; font-weight:700;">0%</span>
+            </div>
+
+            <!-- Predicted Scenario Impact Cockpit -->
+            <div class="scenario-impact-box">
+              <div>
+                <span class="label-telemetry">PROJECTED NET WORTH</span>
+                <div class="mono-num" style="font-size:16px; font-weight:700;" id="stressProjectedNet">$0.00</div>
+              </div>
+              <div>
+                <span class="label-telemetry">PREDICTED $ DELTA</span>
+                <div class="mono-num" style="font-size:16px; font-weight:700;" id="stressDeltaDollar">$0.00</div>
+              </div>
+              <div>
+                <span class="label-telemetry">SHOCK RETURN %</span>
+                <div class="mono-num" style="font-size:16px; font-weight:700;" id="stressDeltaPct">0.00%</div>
+              </div>
+              <div>
+                <span class="label-telemetry">AI HEDGE DIRECTIVE</span>
+                <div style="font-size:11px; font-weight:700; color:var(--secondary-cyan);" id="stressHedgeRec">HOLD BALANCED</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 3: QUANT REBALANCING MATRIX -->
+          <div class="deck-content-pane" id="paneRebalance">
+            <div class="rebalance-actions-bar">
+              <div>
+                <strong style="color:var(--primary-light);">PORTFOLIO TARGET ALLOCATION & REBALANCE OPTIMIZER</strong>
+                <div style="font-size:10px; color:var(--text-muted);">Adjust target allocation percentages. Algorithmic DMA will calculate exact buy/sell deltas to eliminate drift.</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="window.executeAutoRebalance()">⚡ 1-CLICK AUTO REBALANCE</button>
+            </div>
+
+            <div class="holdings-table-container">
+              <table class="terminal-table">
+                <thead>
+                  <tr>
+                    <th>ASSET</th>
+                    <th>CURRENT VALUE</th>
+                    <th>ACTUAL WEIGHT</th>
+                    <th>TARGET WEIGHT</th>
+                    <th>DRIFT DELTA</th>
+                    <th>RECOMMENDED ACTION</th>
+                  </tr>
+                </thead>
+                <tbody id="rebalanceTableBody">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- PANE 4: DIVIDEND RADAR -->
+          <div class="deck-content-pane" id="paneDividend">
+            <div class="dividend-cockpit-grid">
+              <div class="terminal-card">
+                <span class="label-telemetry">ANNUAL DIVIDEND INCOME</span>
+                <div class="mono-num val-up" style="font-size:18px; font-weight:700;" id="divAnnualIncome">$0.00</div>
+                <div style="font-size:10px; color:var(--text-dim);">Projected 12-month forward cashflow</div>
+              </div>
+              <div class="terminal-card">
+                <span class="label-telemetry">WEIGHTED DIVIDEND YIELD</span>
+                <div class="mono-num val-neutral" style="font-size:18px; font-weight:700;" id="divWeightedYield">0.00%</div>
+                <div style="font-size:10px; color:var(--text-dim);">Current market payout yield</div>
+              </div>
+              <div class="terminal-card">
+                <span class="label-telemetry">YIELD ON COST (YOC)</span>
+                <div class="mono-num val-up" style="font-size:18px; font-weight:700;" id="divYieldOnCost">0.00%</div>
+                <div style="font-size:10px; color:var(--text-dim);">Yield against purchase cost basis</div>
+              </div>
+              <div class="terminal-card">
+                <span class="label-telemetry">MONTHLY AVG CASHFLOW</span>
+                <div class="mono-num val-violet" style="font-size:18px; font-weight:700;" id="divMonthlyAvg">$0.00</div>
+                <div style="font-size:10px; color:var(--text-dim);">Re-investable dry powder</div>
+              </div>
+            </div>
+
+            <!-- Monthly Payout Projected Bar Chart -->
+            <div style="padding: 0 12px;">
+              <span class="label-telemetry">PROJECTED MONTHLY PAYOUT SCHEDULE (JAN - DEC)</span>
+            </div>
+            <div class="dividend-months-grid" id="dividendMonthsGrid">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
+          <!-- PANE 5: ALPHA STRATEGY BACKTESTER -->
+          <div class="deck-content-pane" id="paneBacktest">
+            <div class="backtest-controls-row">
+              <div>
+                <label style="font-size:9px; color:var(--text-dim); display:block;">SELECT STRATEGY</label>
+                <select id="backtestStrategySelect" class="terminal-select" style="width:200px;">
+                  <option value="sma_cross">SMA 20/50 Golden Cross</option>
+                  <option value="rsi_reversion">RSI (14) Mean Reversion</option>
+                  <option value="neural_momentum">Neural AI Momentum</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:9px; color:var(--text-dim); display:block;">TARGET ASSET</label>
+                <select id="backtestSymbolSelect" class="terminal-select" style="width:120px;">
+                  <option value="NVDA">NVDA</option>
+                  <option value="AAPL">AAPL</option>
+                  <option value="MSFT">MSFT</option>
+                  <option value="BTC/USD">BTC/USD</option>
+                  <option value="SPY">SPY</option>
+                </select>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="window.runStrategyBacktest()" style="margin-top:14px;">RUN BACKTEST</button>
+            </div>
+
+            <div class="backtest-stats-grid">
+              <div class="terminal-card">
+                <span class="label-telemetry">STRATEGY RETURN</span>
+                <div class="mono-num val-up" style="font-size:16px; font-weight:700;" id="btStratReturn">+34.8%</div>
+              </div>
+              <div class="terminal-card">
+                <span class="label-telemetry">BUY & HOLD</span>
+                <div class="mono-num" style="font-size:16px; font-weight:700;" id="btBenchmarkReturn">+22.4%</div>
+              </div>
+              <div class="terminal-card">
+                <span class="label-telemetry">WIN RATE</span>
+                <div class="mono-num val-neutral" style="font-size:16px; font-weight:700;" id="btWinRate">74.2%</div>
+              </div>
+              <div class="terminal-card">
+                <span class="label-telemetry">PROFIT FACTOR</span>
+                <div class="mono-num val-up" style="font-size:16px; font-weight:700;" id="btProfitFactor">2.84</div>
+              </div>
+              <div class="terminal-card">
+                <span class="label-telemetry">MAX DRAWDOWN</span>
+                <div class="mono-num val-down" style="font-size:16px; font-weight:700;" id="btMaxDD">-7.2%</div>
+              </div>
+            </div>
+
+            <div style="padding: 0 12px 12px 12px;">
+              <canvas id="backtestCanvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =====================================================================
+           RIGHT COLUMN: LEVEL-2 ORDERBOOK & FAST EXECUTION
+           ===================================================================== -->
+      <aside class="right-col">
+        <!-- Live Order Book (Level 2) -->
+        <div class="terminal-panel orderbook-panel">
+          <div class="panel-header">
+            <span class="panel-title">LEVEL-2 ORDERBOOK</span>
+            <span class="panel-telemetry">MICROSTRUCTURE</span>
+          </div>
+
+          <div class="orderbook-grid">
+            <div class="ob-header">
+              <span>PRICE ($)</span>
+              <span style="text-align:right;">SIZE</span>
+              <span style="text-align:right;">TOTAL ($)</span>
+            </div>
+
+            <!-- Asks (Red) -->
+            <div class="ob-ladder-rows" id="obAsksRows">
+              <!-- Populated via JS -->
+            </div>
+
+            <!-- Spread Mid-Bar -->
+            <div class="ob-spread-bar" id="obSpreadVal">
+              SPREAD: $0.04 (0.028%)
+            </div>
+
+            <!-- Bids (Green) -->
+            <div class="ob-ladder-rows" id="obBidsRows">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Fast Execution Pad (Instant Order Router) -->
+        <div class="terminal-panel order-pad-panel">
+          <div class="panel-header" style="margin:-12px -12px 10px -12px;">
+            <span class="panel-title">FAST EXECUTION ROUTER</span>
+            <span class="tag-badge tag-violet">DMA DIRECT</span>
+          </div>
+
+          <div class="order-type-tabs">
+            <button class="order-type-btn active" data-ordtype="MARKET">MARKET</button>
+            <button class="order-type-btn" data-ordtype="LIMIT">LIMIT</button>
+            <button class="order-type-btn" data-ordtype="STOP">STOP</button>
+          </div>
+
+          <div class="order-form-group">
+            <label>TARGET SYMBOL</label>
+            <input type="text" id="fastOrderSymbol" class="terminal-input" readonly value="NVDA">
+          </div>
+
+          <div class="order-form-group">
+            <label>SHARES / UNITS</label>
+            <input type="number" id="fastOrderShares" class="terminal-input" value="10" min="0.001" step="any">
+            <div class="quick-percent-row">
+              <button class="pct-btn" data-pct="25">25% CASH</button>
+              <button class="pct-btn" data-pct="50">50% CASH</button>
+              <button class="pct-btn" data-pct="75">75% CASH</button>
+              <button class="pct-btn" data-pct="100">MAX CASH</button>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; font-size:10px; margin: 8px 0; color:var(--text-muted);">
+            <span>EST. EXECUTION VALUE:</span>
+            <strong id="fastOrderTotalEst" class="mono-num" style="color:var(--text-primary);">$1,428.50</strong>
+          </div>
+
+          <div class="order-action-buttons">
+            <button class="btn btn-bullish" id="btnFastBuy">BUY (LONG) [B]</button>
+            <button class="btn btn-bearish" id="btnFastSell">SELL (SHORT) [S]</button>
+          </div>
+        </div>
+
+        <!-- Portfolio Allocation Donut -->
+        <div class="terminal-panel allocation-panel">
+          <div class="panel-header" style="margin:-12px -12px 10px -12px;">
+            <span class="panel-title">ASSET ALLOCATION MATRIX</span>
+            <span class="panel-telemetry">EXPOSURE</span>
+          </div>
+
+          <div class="alloc-grid">
+            <canvas id="allocCanvas"></canvas>
+            <div class="alloc-legend" id="allocLegend">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Algorithmic Event Stream -->
+        <div class="terminal-panel event-stream-panel">
+          <div class="panel-header">
+            <span class="panel-title">TELEMETRY EVENT STREAM</span>
+            <span class="panel-telemetry">LIVE KERNEL</span>
+          </div>
+
+          <div class="event-stream-list" id="eventStreamList">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       MODALS (Cyber Zero-Radius Architecture)
+       ========================================================================= -->
+
+  <!-- Modal: Keyboard Shortcuts HUD -->
+  <div class="modal-backdrop" id="hotkeysModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span class="modal-title">⌨️ TERMINAL KEYBOARD SHORTCUTS</span>
+        <button class="btn btn-ghost btn-sm modal-close-trigger" data-modal-id="hotkeysModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <table class="terminal-table">
+          <thead>
+            <tr>
+              <th>KEY</th>
+              <th>ACTION</th>
+              <th>SUBSYSTEM</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="kbd-pill">B</span></td>
+              <td>Open Instant Buy Order Router</td>
+              <td>DMA Execution</td>
+            </tr>
+            <tr>
+              <td><span class="kbd-pill">S</span></td>
+              <td>Open Instant Sell Order Router</td>
+              <td>DMA Execution</td>
+            </tr>
+            <tr>
+              <td><span class="kbd-pill">SPACE</span></td>
+              <td>Pause / Resume Real-Time Simulation Engine</td>
+              <td>Tick Feed</td>
+            </tr>
+            <tr>
+              <td><span class="kbd-pill">/</span></td>
+              <td>Focus Watchlist Search Filter</td>
+              <td>Market Screener</td>
+            </tr>
+            <tr>
+              <td><span class="kbd-pill">1 - 4</span></td>
+              <td>Switch Simulation Speed (1X, 5X, 10X, Pause)</td>
+              <td>Simulation Kernel</td>
+            </tr>
+            <tr>
+              <td><span class="kbd-pill">ESC</span></td>
+              <td>Close All Active Modals & Dialogs</td>
+              <td>Window Manager</td>
+            </tr>
+            <tr>
+              <td><span class="kbd-pill">?</span></td>
+              <td>Show this Shortcuts Cheat Sheet</td>
+              <td>Help HUD</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close-trigger" data-modal-id="hotkeysModal">CLOSE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: New Order / Trade -->
+  <div class="modal-backdrop" id="orderModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span class="modal-title">⚡ EXECUTE MARKET ORDER</span>
+        <button class="btn btn-ghost btn-sm modal-close-trigger" data-modal-id="orderModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="order-form-group">
+          <label>SELECT ASSET / TICKER</label>
+          <select id="modalOrderSymbol" class="terminal-select">
+            <option value="NVDA">NVDA - NVIDIA Corp.</option>
+            <option value="AAPL">AAPL - Apple Inc.</option>
+            <option value="MSFT">MSFT - Microsoft Corp.</option>
+            <option value="TSLA">TSLA - Tesla Inc.</option>
+            <option value="AMZN">AMZN - Amazon.com Inc.</option>
+            <option value="GOOGL">GOOGL - Alphabet Inc.</option>
+            <option value="META">META - Meta Platforms</option>
+            <option value="AMD">AMD - Adv. Micro Devices</option>
+            <option value="PLTR">PLTR - Palantir Technologies</option>
+            <option value="COIN">COIN - Coinbase Global</option>
+            <option value="SPY">SPY - SPDR S&P 500 ETF</option>
+            <option value="QQQ">QQQ - Invesco QQQ Trust</option>
+            <option value="BTC/USD">BTC/USD - Bitcoin</option>
+            <option value="ETH/USD">ETH/USD - Ethereum</option>
+          </select>
+        </div>
+        <div class="order-form-group">
+          <label>ORDER DIRECTION</label>
+          <select id="modalOrderType" class="terminal-select">
+            <option value="BUY">BUY / ACCUMULATE (LONG)</option>
+            <option value="SELL">SELL / LIQUIDATE (SHORT/CLOSE)</option>
+          </select>
+        </div>
+        <div class="order-form-group">
+          <label>QUANTITY / SHARES</label>
+          <input type="number" id="modalOrderShares" class="terminal-input" value="10" step="any" min="0.0001">
+        </div>
+        <div style="font-size:10px; color:var(--text-dim); background:#070B11; padding:8px; border:1px solid var(--border-subtle);">
+          Execution will route instantly against simulated live Level-1 DMA exchange book with zero slippage.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close-trigger" data-modal-id="orderModal">CANCEL</button>
+        <button class="btn btn-primary" id="btnSubmitModalOrder">CONFIRM EXECUTION</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Cash Management (Deposit / Withdraw) -->
+  <div class="modal-backdrop" id="cashModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span class="modal-title">💵 CASH & BUYING POWER OPERATIONS</span>
+        <button class="btn btn-ghost btn-sm modal-close-trigger" data-modal-id="cashModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:11px; color:var(--text-muted);">
+          CURRENT CASH BALANCE: <strong class="val-up mono-num" id="modalCashAvail">$0.00</strong>
+        </div>
+        <div class="order-form-group">
+          <label>OPERATION TYPE</label>
+          <select id="cashOpType" class="terminal-select">
+            <option value="DEPOSIT">DEPOSIT CAPITAL (+USD)</option>
+            <option value="WITHDRAW">WITHDRAW CAPITAL (-USD)</option>
+          </select>
+        </div>
+        <div class="order-form-group">
+          <label>AMOUNT ($ USD)</label>
+          <input type="number" id="cashOpAmount" class="terminal-input" value="10000" min="1" step="100">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close-trigger" data-modal-id="cashModal">CANCEL</button>
+        <button class="btn btn-primary" id="btnSubmitCashOp">PROCESS CASH</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Audit Ledger (Complete History) -->
+  <div class="modal-backdrop" id="auditModal">
+    <div class="modal-container" style="max-width:850px;">
+      <div class="modal-header">
+        <span class="modal-title">📜 CHRONOLOGICAL AUDIT LEDGER</span>
+        <button class="btn btn-ghost btn-sm modal-close-trigger" data-modal-id="auditModal">✕</button>
+      </div>
+      <div class="modal-body" style="max-height:450px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:10px; color:var(--text-muted);">ALL FILLED ORDERS, DEPOSITS, AND SETTLED TRANSACTIONS</span>
+          <button class="btn btn-ghost btn-sm" onclick="window.exportTransactionsCSV()">DOWNLOAD CSV</button>
+        </div>
+        <table class="terminal-table">
+          <thead>
+            <tr>
+              <th>ORDER ID</th>
+              <th>SYMBOL</th>
+              <th>TYPE</th>
+              <th>SHARES</th>
+              <th>PRICE</th>
+              <th>TOTAL ($)</th>
+              <th>TIMESTAMP</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close-trigger" data-modal-id="auditModal">CLOSE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Portfolio Presets -->
+  <div class="modal-backdrop" id="presetsModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span class="modal-title">🎛️ PORTFOLIO PRESET CONFIGURATIONS</span>
+        <button class="btn btn-ghost btn-sm modal-close-trigger" data-modal-id="presetsModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+          Switch instantly between pre-curated realistic portfolios or reset to a clean testing state:
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="terminal-card" style="cursor:pointer;" onclick="window.loadPreset('tech')">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <strong style="color:var(--primary-light);">1. AI & SEMICONDUCTOR ALPHA</strong>
+              <span class="tag-badge tag-violet">HIGH GROWTH</span>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted);">NVDA, PLTR, MSFT, AMD, AAPL, COIN, BTC ($34.5k Cash)</div>
+          </div>
+
+          <div class="terminal-card" style="cursor:pointer;" onclick="window.loadPreset('macro')">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <strong style="color:var(--secondary-cyan);">2. BALANCED MACRO SHIELD</strong>
+              <span class="tag-badge tag-cyan">DEFENSIVE</span>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted);">SPY, QQQ, AAPL, AMZN ($65k Cash Reserve)</div>
+          </div>
+
+          <div class="terminal-card" style="cursor:pointer;" onclick="window.loadPreset('quant')">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <strong style="color:var(--bullish-emerald);">3. HIGH-BETA QUANT MOMENTUM</strong>
+              <span class="tag-badge tag-emerald">MOMENTUM</span>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted);">COIN, TSLA, BTC/USD, ETH/USD, PLTR ($21k Cash)</div>
+          </div>
+
+          <div class="terminal-card" style="cursor:pointer; border-color:var(--bearish-crimson);" onclick="window.resetPortfolio()">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <strong style="color:var(--bearish-crimson);">4. CLEAN SLATE (FACTORY RESET)</strong>
+              <span class="tag-badge tag-crimson">EMPTY</span>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted);">$50,000.00 Unallocated Cash. Zero active positions.</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close-trigger" data-modal-id="presetsModal">CANCEL</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Export & Import Data -->
+  <div class="modal-backdrop" id="exportModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span class="modal-title">💾 BACKUP, EXPORT & RESTORE DATA</span>
+        <button class="btn btn-ghost btn-sm modal-close-trigger" data-modal-id="exportModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="terminal-card">
+            <strong style="color:var(--secondary-cyan); display:block; margin-bottom:4px;">EXPORT PORTFOLIO STATE</strong>
+            <p style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">Download a complete JSON snapshot of your current holdings, cash balances, custom sentinel alerts, and transaction history.</p>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-primary btn-sm" onclick="window.exportPortfolioJSON()">DOWNLOAD JSON BACKUP</button>
+              <button class="btn btn-ghost btn-sm" onclick="window.exportTransactionsCSV()">EXPORT AUDIT CSV</button>
+            </div>
+          </div>
+
+          <div class="terminal-card">
+            <strong style="color:var(--primary-light); display:block; margin-bottom:4px;">RESTORE FROM JSON BACKUP</strong>
+            <p style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">Select a previously exported JSON backup file to restore your portfolio state.</p>
+            <input type="file" id="importJsonFileInput" accept=".json" onchange="window.handleImportJSON(event)" style="font-size:11px; color:var(--text-muted);">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close-trigger" data-modal-id="exportModal">CLOSE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
